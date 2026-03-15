@@ -89,15 +89,21 @@ export default function CheckInScreen({ navigation }: any) {
 
     try {
       const gymId = parseQRData(data);
+
+      // Debug: show what was scanned
+      console.log('[QR Scanned] raw:', data, '→ gymId:', gymId);
+
       if (!gymId) {
-        Alert.alert('Invalid QR', 'This QR code is not a valid FitPass code.');
-        setScanned(false);
+        Alert.alert(
+          'Invalid QR Code',
+          `Could not read a valid FitPass gym ID.\n\nScanned data: "${data.substring(0, 60)}..."`,
+          [{ text: 'Try Again', onPress: () => setScanned(false) }]
+        );
         return;
       }
 
       // Check if user already has an active session at THIS gym
       if (activeSession && activeSession.gym_id === gymId) {
-        // Same gym → trigger checkout flow
         Alert.alert(
           '🏁 End Workout?',
           `You're already checked in at ${(activeSession.gym as any)?.name ?? 'this gym'}. Would you like to check out?`,
@@ -113,7 +119,7 @@ export default function CheckInScreen({ navigation }: any) {
       if (activeSession && activeSession.gym_id !== gymId) {
         Alert.alert(
           'Active Session',
-          `You're still checked in at ${(activeSession.gym as any)?.name ?? 'another gym'}. Please check out first before checking into a new gym.`,
+          `You're still checked in at ${(activeSession.gym as any)?.name ?? 'another gym'}. Please check out first.`,
           [{ text: 'OK', onPress: () => setScanned(false) }]
         );
         return;
@@ -126,7 +132,8 @@ export default function CheckInScreen({ navigation }: any) {
         gymId,
       });
     } catch (err: any) {
-      Alert.alert('Failed', err.message, [
+      console.error('[QR Check-in Error]', err);
+      Alert.alert('Check-in Failed', err.message || 'Something went wrong. Please try again.', [
         { text: 'Try Again', onPress: () => setScanned(false) },
       ]);
     }
