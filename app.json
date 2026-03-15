@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "FitPass",
+    "slug": "fitpass",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "fitpass",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0E1A"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.fitpass.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "FitPass needs camera access to scan QR codes for gym check-in.",
+        "NSLocationWhenInUseUsageDescription": "FitPass needs your location to find nearby partner gyms."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0A0E1A"
+      },
+      "package": "com.fitpass.app",
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-camera",
+      "expo-location",
+      "expo-secure-store",
+      "expo-asset",
+      "expo-font"
+    ]
+  }
+}
