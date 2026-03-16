@@ -6,14 +6,29 @@ import {
   View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList,
   ActivityIndicator, ScrollView, Keyboard,
 } from 'react-native';
-import { useGyms } from '../hooks';
+import { useGyms, useLocation } from '../hooks';
+import { useAppStore } from '../context/store';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../utils/theme';
 import type { Gym } from '../types';
 
 const FILTERS = ['All', 'Premium', 'Standard', 'Nearby', 'Top Rated'] as const;
 
+// Haversine formula — distance between two GPS points in km
+function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export default function ExploreScreen({ navigation }: any) {
   const { gyms, fetchGyms, searchGyms, loading } = useGyms();
+  const { location } = useLocation();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<string>('All');
   const [results, setResults] = useState<Gym[]>([]);
@@ -53,7 +68,19 @@ export default function ExploreScreen({ navigation }: any) {
         filtered = filtered.filter((g) => g.rating >= 4.7);
         break;
       case 'Nearby':
-        filtered = filtered.slice(0, 10);
+        if (location) {
+          // Calculate distance for each gym and sort by closest
+          filtered = filtered
+            .map((g) => ({
+              ...g,
+              _distance: getDistanceKm(location.latitude, location.longitude, g.latitude, g.longitude),
+            }))
+            .sort((a, b) => (a as any)._distance - (b as any)._distance)
+            .slice(0, 15);
+        } else {
+          // No location available — prompt user
+          filtered = [];
+        }
         break;
     }
 
@@ -65,7 +92,9 @@ export default function ExploreScreen({ navigation }: any) {
     searchRef.current?.focus();
   };
 
-  const renderGymCard = ({ item: gym }: { item: Gym }) => (
+  const renderGymCard = ({ item: gym }: { item: Gym }) => {
+    const distance = (gym as any)._distance;
+    return (
     <TouchableOpacity
       style={styles.gymCard}
       onPress={() => navigation.navigate('GymDetail', { gymId: gym.id })}
@@ -77,7 +106,10 @@ export default function ExploreScreen({ navigation }: any) {
         </View>
         <View style={styles.gymInfo}>
           <Text style={styles.gymName}>{gym.name}</Text>
-          <Text style={styles.gymArea}>{gym.area}, {gym.city}</Text>
+          <Text style={styles.gymArea}>
+            {gym.area}, {gym.city}
+            {distance != null ? ` · ${distance < 1 ? `${Math.round(distance * 1000)}m` : `${distance.toFixed(1)}km`}` : ''}
+          </Text>
         </View>
         {gym.gym_type === 'premium' && (
           <View style={styles.badge}>
@@ -104,6 +136,7 @@ export default function ExploreScreen({ navigation }: any) {
       </View>
     </TouchableOpacity>
   );
+  };
 
   // Filter chips as ListHeader (no TextInput here — it stays fixed above)
   const ListHeader = useCallback(() => (
@@ -174,9 +207,15 @@ export default function ExploreScreen({ navigation }: any) {
           ItemSeparatorComponent={() => <View style={{ height: SPACING.md }} />}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={styles.emptyEmoji}>🔍</Text>
-              <Text style={styles.emptyText}>No gyms found</Text>
-              <Text style={styles.emptySubtext}>Try adjusting your search or filters</Text>
+              <Text style={styles.emptyEmoji}>{filter === 'Nearby' && !location ? '📍' : '🔍'}</Text>
+              <Text style={styles.emptyText}>
+                {filter === 'Nearby' && !location ? 'Location not available' : 'No gyms found'}
+              </Text>
+              <Text style={styles.emptySubtext}>
+                {filter === 'Nearby' && !location
+                  ? 'Please enable location services to find gyms near you'
+                  : 'Try adjusting your search or filters'}
+              </Text>
             </View>
           }
         />
