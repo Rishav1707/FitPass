@@ -7,8 +7,6 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { gymService } from '../services/gym';
-import { useCheckIn } from '../hooks';
-import { useAppStore } from '../context/store';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../utils/theme';
 import type { Gym, Review } from '../types';
 
@@ -18,8 +16,6 @@ export default function GymDetailScreen({ route, navigation }: any) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [occupancy, setOccupancy] = useState(0);
-  const { performCheckIn, loading: checkInLoading } = useCheckIn();
-  const user = useAppStore((s) => s.user);
 
   useEffect(() => {
     loadGym();
@@ -50,13 +46,10 @@ export default function GymDetailScreen({ route, navigation }: any) {
     }
   };
 
-  const handleCheckIn = async () => {
-    try {
-      await performCheckIn(gymId);
-      Alert.alert('✅ Checked In!', `Welcome to ${gym?.name}. Enjoy your workout!`);
-    } catch (err: any) {
-      Alert.alert('Check-in Failed', err.message);
-    }
+  const handleCheckIn = () => {
+    // Navigate to scanner tab instead of direct check-in
+    // This enforces QR scanning as the only check-in method
+    navigation.navigate('MainTabs', { screen: 'CheckIn' });
   };
 
   if (loading) {
@@ -142,22 +135,17 @@ export default function GymDetailScreen({ route, navigation }: any) {
         </View>
       )}
 
-      {/* Check-in Button */}
+      {/* Check-in Button — navigates to QR scanner */}
       <TouchableOpacity
         style={styles.checkInBtn}
         onPress={handleCheckIn}
-        disabled={checkInLoading}
         activeOpacity={0.8}
       >
         <LinearGradient
           colors={[COLORS.accent, COLORS.accentDim]}
           style={styles.checkInGradient}
         >
-          {checkInLoading ? (
-            <ActivityIndicator color={COLORS.bg} />
-          ) : (
-            <Text style={styles.checkInText}>Check-in Now</Text>
-          )}
+          <Text style={styles.checkInText}>📷 Scan QR to Check-in</Text>
         </LinearGradient>
       </TouchableOpacity>
 

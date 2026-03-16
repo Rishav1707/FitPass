@@ -1,11 +1,12 @@
 // ─────────────────────────────────────────────────
 // Check-in Screen — QR Scanner + Checkout Flow
 // ─────────────────────────────────────────────────
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -66,7 +67,7 @@ export default function CheckInScreen({ navigation }: any) {
   const user = useAppStore((s) => s.user);
   const elapsed = useElapsedTime(activeSession?.checked_in_at ?? null);
 
-  // Scan line animation
+  // Scan line animation (runs once)
   const scanY = useSharedValue(0);
 
   useEffect(() => {
@@ -75,8 +76,14 @@ export default function CheckInScreen({ navigation }: any) {
       -1,
       true
     );
-    fetchActiveSession();
   }, []);
+
+  // Refresh active session every time this screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchActiveSession();
+    }, [])
+  );
 
   const animatedScanLine = useAnimatedStyle(() => ({
     top: `${scanY.value * 100}%`,

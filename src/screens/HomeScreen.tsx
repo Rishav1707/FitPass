@@ -1,10 +1,11 @@
 // ─────────────────────────────────────────────────
 // Home Screen
 // ─────────────────────────────────────────────────
-import React, { useEffect, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth, useGyms, useStats, useCheckIn } from '../hooks';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../utils/theme';
@@ -16,11 +17,14 @@ export default function HomeScreen({ navigation }: any) {
   const { checkInHistory, fetchHistory } = useCheckIn();
   const [refreshing, setRefreshing] = React.useState(false);
 
-  useEffect(() => {
-    fetchNearbyGyms();
-    fetchStats();
-    fetchHistory();
-  }, []);
+  // Refresh data every time Home tab gains focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchNearbyGyms();
+      fetchStats();
+      fetchHistory();
+    }, [])
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

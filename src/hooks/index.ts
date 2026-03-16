@@ -136,18 +136,25 @@ export function useGyms() {
   }, []);
 
   const fetchNearbyGyms = useCallback(async () => {
-    if (!userLocation) return;
     setLoading(true);
     try {
-      const data = await gymService.getNearbyGyms(
-        userLocation.latitude,
-        userLocation.longitude
-      );
-      setNearbyGyms(data);
+      if (userLocation) {
+        const data = await gymService.getNearbyGyms(
+          userLocation.latitude,
+          userLocation.longitude
+        );
+        setNearbyGyms(data);
+      } else {
+        // No location — fallback to all gyms
+        const data = await gymService.getGyms();
+        setNearbyGyms(data.slice(0, 6));
+      }
     } catch (err: any) {
       // Fallback: fetch all gyms if geolocation query fails
-      const data = await gymService.getGyms();
-      setNearbyGyms(data.slice(0, 6));
+      try {
+        const data = await gymService.getGyms();
+        setNearbyGyms(data.slice(0, 6));
+      } catch { /* silent */ }
     } finally {
       setLoading(false);
     }
@@ -271,7 +278,15 @@ export function useSubscription() {
     setLoading(true);
     try {
       const sub = await subscriptionService.getActiveSubscription(user.id);
-      setSubscription(sub);
+
+      // Check if subscription has expired
+      if (sub && new Date(sub.expires_at) < new Date()) {
+        // Auto-expire the subscription
+        await subscriptionService.cancelSubscription(sub.id);
+        setSubscription(null);
+      } else {
+        setSubscription(sub);
+      }
     } catch (err) {
       console.error(err);
     } finally {
